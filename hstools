@@ -1,0 +1,58 @@
+#!/bin/bash
+
+#HSTOOLS for managing hotspot
+#20200425 KM4ACK
+#side note: written during covid-19 outbreak of 2020
+
+
+MYPATH=$HOME/hotspot-tools2
+
+source $MYPATH/functions
+
+#Verify not running as root
+WHO=$(whoami)
+if [ $WHO = 'root' ]; then
+echo "no need to run with sudo"
+exit
+fi
+
+
+yad --form --width=400 --text="<b>HotSpot Tools</b> by KM4ACK" --text-align=center --center --title="HotSpot Tools" --text-align=center \
+--image $HOME/hotspot-tools2/logo.png --window-icon=$HOME/hotspot-tools2/logo.png --image-on-top \
+--field="STATUS":RO "$HS" \
+--field="STATE":RO "$HSS" \
+--field="SSID":RO "$CURRENTNAME" \
+--field="PASSWORD":RO "$CURRENTPASS" \
+--field="IP ADDR":RO "$HSIP" \
+--field="FORCE MODE":RO "$FORCE" \
+--field="Change Name/Password":fbtn 'bash -c "kill -USR1 $YAD_PID; source /home/pi/hotspot-tools2/functions; namepwd"' \
+--field="Run Hotspot Check":fbtn 'bash -c "kill -USR1 $YAD_PID; source /home/pi/hotspot-tools2/functions; hotspot"' \
+--field="Force Hotspot":fbtn 'bash -c "kill -USR1 $YAD_PID; source /home/pi/hotspot-tools2/functions; FORCE"' \
+--field="Undo Force Hotspot":fbtn 'bash -c "kill -USR1 $YAD_PID; source /home/pi/hotspot-tools2/functions; RESTORE"' \
+--field="Disable Hotspot":fbtn "bash -c 'source $MYPATH/functions; disable'" \
+--field="Enable Hotspot":fbtn "bash -c 'source $MYPATH/functions; enable'" \
+--field="Manage SSIDs":fbtn 'bash -c "kill -USR1 $YAD_PID; source /home/pi/hotspot-tools2/functions; MANAGESSID"' \
+--field="DHCP List":fbtn 'bash -c "kill -USR1 $YAD_PID; source /home/pi/hotspot-tools2/functions; DHCPLIST"' \
+--field="Auto Hotspot Check <b>$AUTORUN</b>":fbtn 'bash -c "kill -USR1 $YAD_PID; source /home/pi/hotspot-tools2/functions; AUTOCHECK"' \
+--button=gtk-quit:1
+
+QUIT=$?
+
+if [ $QUIT = 1 ] || [ $QUIT = 252 ]; then
+exit
+fi
+
+#old info left for reference.
+
+#--field="Change Name/Password":fbtn "bash -c 'source $MYPATH/functions; namepwd'" \
+#--field="Run Hotspot":fbtn "bash -c 'source $MYPATH/functions; hotspot'" \
+#--field="Disable Hotspot":fbtn "bash -c 'source $MYPATH/functions; disable'" \
+#--field="Enable Hotspot":fbtn "bash -c 'source $MYPATH/functions; enable'" \
+#--field="Manage SSIDs":fbtn "bash -c 'source $MYPATH/functions; MANAGESSID'" \
+#--field="DHCP List":fbtn "bash -c 'source $MYPATH/functions; DHCPLIST'" \
+#--field="Update":fbtn 'bash -c "kill -USR1 $YAD_PID; source /home/pi/Pi-APRS/functions; MYCONFIG"' \
+
+
+
+
+

@@ -1,0 +1,500 @@
+
+
+#SYSTEM STATUS
+HS=$(systemctl is-active autohotspot)
+CURRENTNAME=$(sudo cat /etc/hostapd/hostapd.conf | grep ssid= | head -1 | sed 's/ssid=//')
+CURRENTPASS=$(sudo cat /etc/hostapd/hostapd.conf | grep wpa_passphrase= | sed 's/wpa_passphrase=//')
+HSIP=$(sudo cat /usr/bin/autohotspotN | grep "ip a add" | sed 's/ip\ a\ add\ //' | sed 's/\/24.*$//' | tr -d " ")
+HSS=$(sudo cat /usr/bin/autohotspotN | grep "ip a add" | awk '{ print $4 }' | sed 's/\/24//')
+CIP=$(ifconfig | grep -A 1 wlan0 | grep inet | awk '{ print $2 }')
+MAIN=$HOME/hotspot-tools2/./hstools
+MYPATH=$HOME/hotspot-tools2
+CHECK=$(ls /etc/wpa_supplicant/ | grep FORCE)
+AUTORUN=$(crontab -l | grep autohotspotN | awk '{print $1}' | sed 's/*\///')
+TEMPCRON=/run/user/1000/crontemp
+
+if [ -z "$CHECK" ]; then
+FORCE=INACTIVE
+else
+FORCE=ACTIVE
+fi
+
+if [ $HSS = $CIP ]
+then
+HSS=ACTIVE
+else
+HSS=INACTIVE
+fi
+
+if [ $HS = 'active' ]
+then
+HS=Enabled
+elif [ $HS = 'inactive' ]
+then
+HS=Disabled
+fi
+
+#--------------------------------------------------
+#	update name & passwd
+#--------------------------------------------------
+namepwd(){
+if [ "$HS" = 'Disabled' ]; then
+yad --form --center --width 300 --height 200 --separator="|" --item-separator="|" --title="Time" \
+--image $HOME/hotspot-tools2/logo.png --window-icon=$HOME/hotspot-tools2/logo.png --image-on-top --text-align=center \
+--text "Enable HotSpot and try again." \
+--button=gtk-ok
+$MAIN &
+exit
+fi
+NAMEPWD=$(yad --form --center --width 500 --height 500 --separator="|" --item-separator="|" --title="Name-Password" \
+--image $HOME/hotspot-tools2/logo.png --window-icon=$HOME/hotspot-tools2/logo.png --image-on-top --text-align=center \
+--text "Current name and password shown below.\rChange as desired and press OK" \
+--field="Hotspot Name" "$CURRENTNAME" \
+--field="Hotspot Password" "$CURRENTPASS")
+
+#update name & password
+NEWNAME=$(echo $NAMEPWD | awk -F "|" '{print $1}')
+NEWPASS=$(echo $NAMEPWD | awk -F "|" '{print $2}')
+if [ -z "$NEWNAME" ]; then
+$MAIN
+exit
+else
+sudo sed -i "s/^ssid=.*$/ssid=$NEWNAME/" /etc/hostapd/hostapd.conf
+sudo sed -i "s/wpa_passphrase.*$/wpa_passphrase=$NEWPASS/" /etc/hostapd/hostapd.conf
+
+#give option to reboot
+yad --text="Reboot required for changes to take effect" --center --width 300 --height 100 --title="Reboot?" \
+--button="Reboot":1 \
+--button="Cancel":2
+ANS=$?
+
+	if [ "$ANS" = 1 ]; then
+	reboot
+	elif [ "$ANS" = 2 ]; then
+	$MAIN
+	exit
+	fi
+fi
+
+}
+
+#--------------------------------------------------
+#		run hotspot
+#--------------------------------------------------
+hotspot(){
+if [ "$HS" = 'Disabled' ]; then
+yad --form --center --width 300 --height 200 --separator="|" --item-separator="|" --title="Time" \
+--image $HOME/hotspot-tools2/logo.png --window-icon=$HOME/hotspot-tools2/logo.png --image-on-top --text-align=center \
+--text "Enable HotSpot and try again." \
+--button=gtk-ok
+$MAIN &
+exit
+fi
+yad --no-buttons --timeout=30 --center --timeout-indicator=top --title="STANDBY" --width="300" height="300" \
+--image $HOME/hotspot-tools2/logo.png --window-icon=$HOME/hotspot-tools2/logo.png --image-on-top \
+--text="This takes 30 seconds to complete" &
+sudo /usr/bin/autohotspotN
+$MAIN
+}
+
+#--------------------------------------------------
+#		disable hotspot
+#--------------------------------------------------
+disable(){
+if [ -n "$CHECK" ]; then
+yad --form --center --width 300 --height 200 --separator="|" --item-separator="|" --title="Time" \
+--image $HOME/hotspot-tools2/logo.png --window-icon=$HOME/hotspot-tools2/logo.png --image-on-top --text-align=center \
+--text "Can't disable. Currently in Force Mode" \
+--button=gtk-ok
+$MAIN &
+exit
+fi
+if [ "$HS" = 'Disabled' ]; then
+yad --form --center --width 300 --height 200 --separator="|" --item-separator="|" --title="Time" \
+--image $HOME/hotspot-tools2/logo.png --window-icon=$HOME/hotspot-tools2/logo.png --image-on-top --text-align=center \
+--text "HotSpot already disabled" \
+--button=gtk-ok
+$MAIN &
+exit
+fi
+sudo systemctl disable autohotspot
+sudo sed -i 's/nohook\ wpa_supplicant//g' /etc/dhcpcd.conf
+crontab -l > $TEMPCRON
+sed -i '/autohotspotN/d' $TEMPCRON
+crontab $TEMPCRON
+
+#give option to reboot
+yad --text="Hotspot disabled \rReboot required for changes to take effect" --center --width 300 --height 100 --title="Disable" \
+--image $HOME/hotspot-tools2/logo.png --window-icon=$HOME/hotspot-tools2/logo.png --image-on-top \
+--button="Reboot":1 \
+--button="Cancel":2
+
+	if [ $? = 1 ]; then
+	reboot
+	elif [ $? = 2 ]; then
+	$MAIN
+	exit
+	fi
+}
+
+#--------------------------------------------------
+#		enable hotspot
+#--------------------------------------------------
+enable(){
+if [ "$HS" = 'Enabled' ]; then
+yad --form --center --width 300 --height 200 --separator="|" --item-separator="|" --title="Time" \
+--image $HOME/hotspot-tools2/logo.png --window-icon=$HOME/hotspot-tools2/logo.png --image-on-top --text-align=center \
+--text "HotSpot already enabled" \
+--button=gtk-ok
+exit
+fi
+sudo systemctl enable autohotspot
+sudo echo "nohook wpa_supplicant" >> /etc/dhcpcd.conf
+crontab -l > $TEMPCRON
+echo "*/5 * * * * sudo /usr/bin/autohotspotN >/dev/null 2>&1" >> $TEMPCRON
+crontab $TEMPCRON
+
+#give option to reboot
+yad --text="Hotspot enabled \rReboot required for changes to take effect" --center --width 300 --height 100 --title="Enable" \
+--image $HOME/hotspot-tools2/logo.png --window-icon=$HOME/hotspot-tools2/logo.png --image-on-top \
+--button="Reboot":1 \
+--button="Cancel":2
+
+	if [ $? = 1 ]; then
+	reboot
+	elif [ $? = 2 ]; then
+	$MAIN
+	exit
+	fi
+}
+
+#--------------------------------------------------
+#		ADD - REMOVE SSIDs
+#--------------------------------------------------
+
+MANAGESSID(){
+if [ "$HS" = 'Disabled' ]; then
+yad --form --center --width 300 --height 200 --separator="|" --item-separator="|" --title="Time" \
+--image $HOME/hotspot-tools2/logo.png --window-icon=$HOME/hotspot-tools2/logo.png --image-on-top --text-align=center \
+--text "Enable HotSpot and try again." \
+--button=gtk-ok
+$MAIN &
+exit
+fi
+#-----------------------------------------------
+#	ADD WiFi SSID
+#-----------------------------------------------
+ADD(){
+CHECK=$(ls /etc/wpa_supplicant/ | grep FORCE)
+if [ -z "$CHECK" ]; then
+TEMPFILE=/run/user/1000/wifi.temp
+HS=$(systemctl is-active autohotspot)
+if [ $HS = 'active' ]
+then
+HSS=ACTIVE
+else
+HSS=INACTIVE
+fi
+yad --no-buttons --timeout=5 --center --timeout-indicator=top \
+--image $HOME/hotspot-tools2/logo.png --window-icon=$HOME/hotspot-tools2/logo.png --image-on-top \
+--text="Scanning for WiFi" &
+
+LIST=$(sudo iw dev "wlan0" scan ap-force | egrep "^BSS|SSID:" | grep SSID: | sed 's/SSID://' | awk '{ print $1 }')
+echo $LIST
+LIST=$(echo $LIST | sed 's/ /|/g')
+
+
+WIFIADD(){
+WIFI=$(yad --center --height="600" --width="300" --form --separator="|" --item-separator="|" --title="Add Wifi" \
+--image $HOME/hotspot-tools2/logo.png --window-icon=$HOME/hotspot-tools2/logo.png --image-on-top \
+--text="Choose WiFi to connect to" \
+--field="List":CB "$LIST")
+
+if [ -z $WIFI ];then
+$MAIN
+exit
+fi
+
+WIFI=$(echo $WIFI | awk -F "|" '{print $1}')
+
+PASS=$(yad --center --form --separator="|" --item-separator="|" --title="Password" \
+--image $HOME/hotspot-tools2/logo.png --window-icon=$HOME/hotspot-tools2/logo.png --image-on-top \
+--field="Wifi Password" \
+--field="Retype Password")
+	if [ $? = 1 ]; then
+	$MAIN
+	exit
+	fi
+
+PASS2=$(echo $PASS | awk -F "|" '{print $2}')
+PASS=$(echo $PASS | awk -F "|" '{print $1}')
+
+
+if [ "$PASS" != "$PASS2" ]; then
+yad --center --form --title="Wrong!!" \
+--image $HOME/hotspot-tools2/logo.png --window-icon=$HOME/hotspot-tools2/logo.png --image-on-top \
+--text="Passwords don't match \rPlease try again"
+	if [ $? = 1 ]; then
+	$MAIN
+	exit
+	else
+	WIFIADD
+	fi
+fi
+}
+
+WIFIADD
+
+
+cat > $TEMPFILE <<EOF
+network={
+ssid="$WIFI"
+psk="$PASS"
+key_mgmt=WPA-PSK
+}
+EOF
+cat $TEMPFILE | sudo tee -a /etc/wpa_supplicant/wpa_supplicant.conf
+rm $TEMPFILE
+	if [ $HSS = 'ACTIVE' ]
+	then
+	yad --no-buttons --timeout=5 --center --timeout-indicator=top --title="ADDED" \
+	--image $HOME/hotspot-tools2/logo.png --window-icon=$HOME/hotspot-tools2/logo.png --image-on-top \
+	--text="WIFI HAS BEEN ADDED" &
+	sudo /usr/bin/autohotspotN &
+	$MAIN
+	exit
+	elif [ $HSS = 'INACTIVE' ]
+	then
+	yad --no-buttons --timeout=5 --center --timeout-indicator=top --title="ADDED" \
+	--image $HOME/hotspot-tools2/logo.png --window-icon=$HOME/hotspot-tools2/logo.png --image-on-top \
+	--text="WIFI HAS BEEN ADDED" &
+	sudo killall wpa_supplicant
+	sleep 1
+	sudo wpa_supplicant -B -i wlan0 -c /etc/wpa_supplicant/wpa_supplicant.conf
+	sleep 1
+	$MAIN
+	exit
+	fi
+else
+yad --center --timeout-indicator=top --title="ACTIVE" --width="350" height="300" \
+--image $HOME/hotspot-tools2/logo.png --window-icon=$HOME/hotspot-tools2/logo.png --image-on-top \
+--text="Pi is in Force Hotspot Mode. You must Undo Force Hotspot before adding a new SSID " \
+--button=gtk-ok
+$MAIN &
+exit
+fi
+
+}
+
+#-----------------------------------------------
+#	Remove WiFi SSID
+#-----------------------------------------------
+SUBTRACT(){
+LIST=$(sudo cat /etc/wpa_supplicant/wpa_supplicant.conf | grep ssid= | sed 's/ssid="//' | sed 's/"//')
+LIST=$(echo $LIST | sed s'/ /|/g')
+
+
+WIFI=$(yad --center --form --separator="|" --item-separator="|" --title="WiFi List" \
+--image $HOME/hotspot-tools2/logo.png --window-icon=$HOME/hotspot-tools2/logo.png --image-on-top \
+--width="300" --height="300" \
+--text="Select WiFi to remove" \
+--field="List":CB "$LIST")
+
+if [ $? = 1 ]; then
+$MAIN
+exit
+fi
+
+RSSID=$(echo $WIFI | awk -F "|" '{print $1}')
+echo $WIFI
+file="/etc/wpa_supplicant/wpa_supplicant.conf"
+foo="$(sudo cat "$file" | awk -v RSSID="$RSSID" '$0 ~ RSSID { flag=1 }; flag==0 { print $0 }; /network={/ { flag=0 }' )"
+if echo -e "$foo" | tail -1 | grep -q 'network={'; then
+   foo=$(echo -e "$foo" | head -n -1)
+fi
+echo -e "$foo" | sudo tee "$file"
+echo $RSSID" has been removed"
+yad --no-buttons --timeout=5 --center --timeout-indicator=top --title="REMOVED" \
+--image $HOME/hotspot-tools2/logo.png --window-icon=$HOME/hotspot-tools2/logo.png --image-on-top \
+--text="WIFI HAS BEEN REMOVED"
+$MAIN
+}
+#-----------------------------------------------
+#		Manage SSID MENU
+#-----------------------------------------------
+CURRENTSSID=$(sudo cat /etc/wpa_supplicant/wpa_supplicant.conf | grep ssid= | sed 's/ssid="//' | sed 's/"//')
+yad --center --height="600" --width="300" --title="Manage SSIDs" \
+--image $HOME/hotspot-tools2/logo.png --window-icon=$HOME/hotspot-tools2/logo.png --image-on-top \
+--list --column="Currently Known SSIDs" --separator="|" --item-separator="" $CURRENTSSID \
+--button="Add New Wifi":1 \
+--button="Remove Wifi":2 \
+--button="Exit":3 
+ANS=$?
+
+if [ "$ANS" = 1 ]; then
+ADD
+elif [ "$ANS" = 2 ]; then
+SUBTRACT
+elif [ "$ANS" = 3 ]; then
+$MAIN
+exit
+fi
+}
+
+#-----------------------------------------------
+#		DHCP LIST
+#-----------------------------------------------
+DHCPLIST(){
+VAR=$(cat /var/lib/misc/dnsmasq.leases | awk '{ print $3" "$4" "$5 }')
+#exit
+
+yad --list --column="IP Address" --column="NAME" --column="MAC Address" --separator="|" --item-separator="" $VAR \
+--image $HOME/hotspot-tools2/logo.png --window-icon=$HOME/hotspot-tools2/logo.png --image-on-top \
+--width="500" --height="500" --center --title="DHCP LIST" \
+--button="Exit":1
+$MAIN
+}
+
+
+#-----------------------------------------------
+#		Force HotSpot
+#-----------------------------------------------
+FORCE(){
+CHECK=$(ls /etc/wpa_supplicant/ | grep FORCE)
+if [ "$HS" = 'Disabled' ]; then
+yad --form --center --width 300 --height 200 --separator="|" --item-separator="|" --title="Time" \
+--image $HOME/hotspot-tools2/logo.png --window-icon=$HOME/hotspot-tools2/logo.png --image-on-top --text-align=center \
+--text "Can't force. HotSpot disabled" \
+--button=gtk-ok
+$MAIN &
+exit
+fi
+
+if [ -z "$CHECK" ]; then
+yad --no-buttons --timeout=3 --center --timeout-indicator=top --title="STANDBY" --width="300" height="300" \
+--image $HOME/hotspot-tools2/logo.png --window-icon=$HOME/hotspot-tools2/logo.png --image-on-top \
+--text="Forcing into hotspot mode. Please standby" &
+
+#backup current wpa
+sudo cp /etc/wpa_supplicant/wpa_supplicant.conf /etc/wpa_supplicant/wpa_supplicant.org
+sudo touch /etc/wpa_supplicant/FORCE
+
+#cp blank wpa to wpa
+sudo cp $MYPATH/.blankwpa /etc/wpa_supplicant/wpa_supplicant.conf
+
+#run hotspot
+sudo /usr/bin/autohotspotN
+yad --center --timeout-indicator=top --title="ACTIVE" --width="300" height="300" \
+--image $HOME/hotspot-tools2/logo.png --window-icon=$HOME/hotspot-tools2/logo.png --image-on-top \
+--text="Force HotSpot Activated" \
+--button=gtk-ok
+$MAIN &
+exit
+else
+yad --center --timeout-indicator=top --title="ACTIVE" --width="300" height="300" \
+--image $HOME/hotspot-tools2/logo.png --window-icon=$HOME/hotspot-tools2/logo.png --image-on-top \
+--text="Force HotSpot Already Active" \
+--button=gtk-ok
+$MAIN &
+exit
+fi
+}
+
+
+#-----------------------------------------------
+#		Restore HotSpot
+#-----------------------------------------------
+RESTORE(){
+CHECK=$(ls /etc/wpa_supplicant/ | grep FORCE)
+if [ -z "$CHECK" ]; then
+yad --center --timeout-indicator=top --title="INACTIVE" --width="300" height="300" \
+--image $HOME/hotspot-tools2/logo.png --window-icon=$HOME/hotspot-tools2/logo.png --image-on-top \
+--text="Force HotSpot Not Active. Nothing to undo." \
+--button=gtk-ok
+$MAIN &
+exit
+else
+yad --no-buttons --timeout=20 --center --timeout-indicator=top --title="STANDBY" --width="300" height="300" \
+--image $HOME/hotspot-tools2/logo.png --window-icon=$HOME/hotspot-tools2/logo.png --image-on-top \
+--text="Restoring regular hotspot mode. Please standby" &
+#cp org wpa to wpa
+sudo cp /etc/wpa_supplicant/wpa_supplicant.org /etc/wpa_supplicant/wpa_supplicant.conf
+sudo rm /etc/wpa_supplicant/FORCE
+
+#run hotspot
+sudo /usr/bin/autohotspotN
+yad --center --timeout-indicator=top --title="ACTIVE" --width="300" height="300" \
+--image $HOME/hotspot-tools2/logo.png --window-icon=$HOME/hotspot-tools2/logo.png --image-on-top \
+--text="Force hotspot deactivated. Hotspot will check for known SSIDs every $AUTORUN minutes. If none found \
+the hotspot will be started" \
+--button=gtk-ok
+$MAIN &
+exit
+fi
+}
+
+AUTOCHECK(){
+
+if [ "$HS" = 'Disabled' ]; then
+yad --form --center --width 300 --height 200 --separator="|" --item-separator="|" --title="Time" \
+--image $HOME/hotspot-tools2/logo.png --window-icon=$HOME/hotspot-tools2/logo.png --image-on-top --text-align=center \
+--text "Enable HotSpot and try again." \
+--button=gtk-ok
+$MAIN &
+exit
+fi
+
+#get crontab
+crontab -l > $TEMPCRON
+
+#delete current autohotspotN time
+sed -i '/autohotspotN/d' $TEMPCRON
+
+MIN=$(yad --form --center --width 300 --height 200 --separator="|" --item-separator="|" --title="Time" \
+--image $HOME/hotspot-tools2/logo.png --window-icon=$HOME/hotspot-tools2/logo.png --image-on-top --text-align=center \
+--text "Hotspot is currently set to run every <b>$AUTORUN minutes.</b>" \
+--field="How often to run":CB "2|5|10|30|60" \
+--button="Change Auto Time":2 \
+--button="Cancel":1)
+BUT=$?
+if [ $BUT = 1 ]; then
+$MAIN &
+rm $TEMPCRON
+exit
+elif [ $BUT = 252 ]; then
+rm $TEMPCRON
+exit
+fi
+MIN=$(echo $MIN | awk -F "|" '{print $1}')
+echo $MIN
+
+echo "*/$MIN * * * * sudo /usr/bin/autohotspotN >/dev/null 2>&1" >> $TEMPCRON
+
+
+crontab $TEMPCRON
+
+AUTORUN=$(crontab -l | grep autohotspotN | awk '{print $1}' | sed 's/*\///')
+yad --form --center --width 300 --height 200 --separator="|" --item-separator="|" --title="Time" \
+--image $HOME/hotspot-tools2/logo.png --window-icon=$HOME/hotspot-tools2/logo.png --image-on-top --text-align=center \
+--text "Hotspot is now set to run every <b>$AUTORUN minutes.</b>" \
+--button=gtk-ok
+$MAIN &
+exit
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

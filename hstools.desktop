@@ -1,0 +1,9 @@
+[Desktop Entry]
+Name=Hotspot Tools
+GenericName=Tools to Manage AutoHotSpot
+Comment=Tools to Manage AutoHotSpot
+Exec=/home/pi/hotspot-tools2/hstools
+Icon=/home/pi/hotspot-tools2/logo.png
+Terminal=false
+Type=Application
+Categories=HamRadio;
