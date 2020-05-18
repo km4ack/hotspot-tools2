@@ -5,7 +5,7 @@ A collection of tools for managing autohotspot
 This software is currently considered beta. The original production version can be found here https://github.com/km4ack/hotspot-tools
 
 # Dependencies
-YAD is required for this script. To install YAD
+YAD is required for this script. Those running Build-a-Pi already have YAD installed. To install YAD
 
      sudo apt-get install yad 
 
