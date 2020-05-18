@@ -7,7 +7,7 @@ This software is currently considered beta. The original production version can 
 # Dependencies
 YAD is required for this script. To install YAD
 
-     sudo apt-get yad 
+     sudo apt-get install yad 
 
 # Installation
 Execute the commands below to install.
