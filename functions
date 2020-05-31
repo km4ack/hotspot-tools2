@@ -199,9 +199,10 @@ yad --no-buttons --timeout=5 --center --timeout-indicator=top \
 --image $HOME/hotspot-tools2/logo.png --window-icon=$HOME/hotspot-tools2/logo.png --image-on-top \
 --text="Scanning for WiFi" &
 
-LIST=$(sudo iw dev "wlan0" scan ap-force | egrep "^BSS|SSID:" | grep SSID: | sed 's/SSID://' | awk '{ print $1 }')
+LIST=$(sudo iw dev "wlan0" scan ap-force | egrep "^BSS|SSID:" | grep SSID: | sed 's/SSID://')
 echo $LIST
-LIST=$(echo $LIST | sed 's/ /|/g')
+LIST=$(echo "$LIST" | tr '\n' '|')
+LIST=$(echo $LIST | sed 's/| /|/g')
 
 
 WIFIADD(){
