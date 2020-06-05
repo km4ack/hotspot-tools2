@@ -55,12 +55,14 @@ NAMEPWD=$(yad --form --center --width 500 --height 500 --separator="|" --item-se
 #update name & password
 NEWNAME=$(echo $NAMEPWD | awk -F "|" '{print $1}')
 NEWPASS=$(echo $NAMEPWD | awk -F "|" '{print $2}')
+#escape all "&" incase used in HS password
+NEWPASS=$(sed 's|&|\\&|g' <<< $NEWPASS)
 if [ -z "$NEWNAME" ]; then
 $MAIN
 exit
 else
 sudo sed -i "s/^ssid=.*$/ssid=$NEWNAME/" /etc/hostapd/hostapd.conf
-sudo sed -i "s/wpa_passphrase.*$/wpa_passphrase=$NEWPASS/" /etc/hostapd/hostapd.conf
+sudo sed -i "s|wpa_passphrase.*$|wpa_passphrase=$NEWPASS|" /etc/hostapd/hostapd.conf
 
 #give option to reboot
 yad --text="Reboot required for changes to take effect" --center --width 300 --height 100 --title="Reboot?" \
