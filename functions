@@ -11,7 +11,7 @@ MAIN=$HOME/hotspot-tools2/./hstools
 MYPATH=$HOME/hotspot-tools2
 CHECK=$(ls /etc/wpa_supplicant/ | grep FORCE)
 AUTORUN=$(crontab -l | grep autohotspotN | awk '{print $1}' | sed 's/*\///')
-TEMPCRON=/run/user/$UID/crontemp
+TEMPCRON=/run/user/1000/crontemp
 
 if [ -z "$CHECK" ]; then
 FORCE=INACTIVE
@@ -189,7 +189,7 @@ fi
 ADD(){
 CHECK=$(ls /etc/wpa_supplicant/ | grep FORCE)
 if [ -z "$CHECK" ]; then
-TEMPFILE=/run/user/$UID/wifi.temp
+TEMPFILE=/run/user/1000/wifi.temp
 HS=$(systemctl is-active autohotspot)
 if [ $HS = 'active' ]
 then
