@@ -295,9 +295,9 @@ fi
 #	Remove WiFi SSID
 #-----------------------------------------------
 SUBTRACT(){
-LIST=$(sudo cat /etc/wpa_supplicant/wpa_supplicant.conf | grep ssid= | sed 's/ssid="//' | sed 's/"//')
-LIST=$(echo $LIST | sed s'/ /|/g')
-
+#LIST=$(sudo cat /etc/wpa_supplicant/wpa_supplicant.conf | grep ssid= | sed 's/ssid="//' | sed 's/"//')
+#LIST=$(echo $LIST | sed s'/ /|/g')
+LIST=$(sudo cat /etc/wpa_supplicant/wpa_supplicant.conf | grep ssid= | sed 's/ssid="//' | sed 's/"//' | sort | uniq | paste -sd '|')
 
 WIFI=$(yad --center --form --separator="|" --item-separator="|" --title="WiFi List" \
 --image $HOME/hotspot-tools2/logo.png --window-icon=$HOME/hotspot-tools2/logo.png --image-on-top \
@@ -330,7 +330,7 @@ $MAIN
 CURRENTSSID=$(sudo cat /etc/wpa_supplicant/wpa_supplicant.conf | grep ssid= | sed 's/ssid="//' | sed 's/"//')
 yad --center --height="600" --width="300" --title="Manage SSIDs" \
 --image $HOME/hotspot-tools2/logo.png --window-icon=$HOME/hotspot-tools2/logo.png --image-on-top \
---list --column="Currently Known SSIDs" --separator="|" --item-separator="" $CURRENTSSID \
+--list --column="Currently Known SSIDs" --separator="|" --item-separator="" "$CURRENTSSID" \
 --button="Add New Wifi":1 \
 --button="Remove Wifi":2 \
 --button="Exit":3 
