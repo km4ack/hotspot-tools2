@@ -1,6 +1,9 @@
 # Hotspot Tools2
 A collection of tools for managing autohotspot
 
+# Video
+[![IMAGE ALT TEXT](https://img.youtube.com/vi/7kB2L-dQVr8/0.jpg)](https://youtu.be/7kB2L-dQVr8 "Build a Pi")
+
 # Dependencies
 YAD is required for this script. Those running Build-a-Pi already have YAD installed. To install YAD
 
