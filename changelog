@@ -1,4 +1,6 @@
-version=2.0.2
+version=2.0.3
+
+2.0.3	Add compatability for SSID with spaces https://github.com/km4ack/hotspot-tools2/issues/9
 
 2.0.2 	Change /user/run/1000 in functions to /user/run/$UID to make compatible with users other than pi
 
