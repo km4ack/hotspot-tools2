@@ -1,6 +1,10 @@
 # Hotspot Tools2
 A collection of tools for managing autohotspot
 
+# Video
+[![IMAGE ALT TEXT](https://img.youtube.com/vi/7kB2L-dQVr8/0.jpg)](https://youtu.be/7kB2L-dQVr8 "Hot Spot Tools")
+
+[![IMAGE ALT TEXT](https://youtu.be/WqyPgj3cDKE/0.jpg)](https://youtu.be/WqyPgj3cDKE “Hot Spot Tools in Depth“)
 
 # Dependencies
 YAD is required for this script. Those running Build-a-Pi already have YAD installed. To install YAD
