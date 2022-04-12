@@ -1,5 +1,10 @@
-version=2.0.1
+version=2.0.4
 
+2.0.4   Update code for compatibility with non Pi usernames
+
+2.0.3	Add compatability for SSID with spaces https://github.com/km4ack/hotspot-tools2/issues/9
+
+2.0.2 	Change /user/run/1000 in functions to /user/run/$UID to make compatible with users other than pi
 
 2.0.1	Update password to handle special character
 

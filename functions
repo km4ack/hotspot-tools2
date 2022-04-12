@@ -11,7 +11,7 @@ MAIN=$HOME/hotspot-tools2/./hstools
 MYPATH=$HOME/hotspot-tools2
 CHECK=$(ls /etc/wpa_supplicant/ | grep FORCE)
 AUTORUN=$(crontab -l | grep autohotspotN | awk '{print $1}' | sed 's/*\///')
-TEMPCRON=/run/user/1000/crontemp
+TEMPCRON=/run/user/$UID/crontemp
 
 if [ -z "$CHECK" ]; then
 FORCE=INACTIVE
@@ -189,7 +189,7 @@ fi
 ADD(){
 CHECK=$(ls /etc/wpa_supplicant/ | grep FORCE)
 if [ -z "$CHECK" ]; then
-TEMPFILE=/run/user/1000/wifi.temp
+TEMPFILE=/run/user/$UID/wifi.temp
 HS=$(systemctl is-active autohotspot)
 if [ $HS = 'active' ]
 then
@@ -201,9 +201,12 @@ yad --no-buttons --timeout=5 --center --timeout-indicator=top \
 --image $HOME/hotspot-tools2/logo.png --window-icon=$HOME/hotspot-tools2/logo.png --image-on-top \
 --text="Scanning for WiFi" &
 
-LIST=$(sudo iw dev "wlan0" scan ap-force | egrep "^BSS|SSID:" | grep SSID: | sed 's/SSID://' | awk '{ print $1 }')
-echo $LIST
-LIST=$(echo $LIST | sed 's/ /|/g')
+#old way to scan for SSIDs
+#LIST=$(sudo iw dev "wlan0" scan ap-force | egrep "^BSS|SSID:" | grep SSID: | sed 's/SSID://' | awk '{ print $1 }')
+#echo $LIST
+#LIST=$(echo $LIST | sed 's/ /|/g')
+#New way to scan SSID to handle spaces in names 20210728
+LIST=$(sudo iw dev "wlan0" scan ap-force | sed -ne 's/^.*SSID: \(..*\)/\1/p' | sort | uniq | paste -sd '|')
 
 
 WIFIADD(){
@@ -292,9 +295,9 @@ fi
 #	Remove WiFi SSID
 #-----------------------------------------------
 SUBTRACT(){
-LIST=$(sudo cat /etc/wpa_supplicant/wpa_supplicant.conf | grep ssid= | sed 's/ssid="//' | sed 's/"//')
-LIST=$(echo $LIST | sed s'/ /|/g')
-
+#LIST=$(sudo cat /etc/wpa_supplicant/wpa_supplicant.conf | grep ssid= | sed 's/ssid="//' | sed 's/"//')
+#LIST=$(echo $LIST | sed s'/ /|/g')
+LIST=$(sudo cat /etc/wpa_supplicant/wpa_supplicant.conf | grep ssid= | sed 's/ssid="//' | sed 's/"//' | sort | uniq | paste -sd '|')
 
 WIFI=$(yad --center --form --separator="|" --item-separator="|" --title="WiFi List" \
 --image $HOME/hotspot-tools2/logo.png --window-icon=$HOME/hotspot-tools2/logo.png --image-on-top \
@@ -327,7 +330,7 @@ $MAIN
 CURRENTSSID=$(sudo cat /etc/wpa_supplicant/wpa_supplicant.conf | grep ssid= | sed 's/ssid="//' | sed 's/"//')
 yad --center --height="600" --width="300" --title="Manage SSIDs" \
 --image $HOME/hotspot-tools2/logo.png --window-icon=$HOME/hotspot-tools2/logo.png --image-on-top \
---list --column="Currently Known SSIDs" --separator="|" --item-separator="" $CURRENTSSID \
+--list --column="Currently Known SSIDs" --separator="|" --item-separator="" "$CURRENTSSID" \
 --button="Add New Wifi":1 \
 --button="Remove Wifi":2 \
 --button="Exit":3 
