@@ -1,6 +1,7 @@
 version=2.0.4
 
 2.0.4   Update code for compatibility with non Pi usernames
+	Add videos to readme.md
 
 2.0.3	Add compatability for SSID with spaces https://github.com/km4ack/hotspot-tools2/issues/9
 
